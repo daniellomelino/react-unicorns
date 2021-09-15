@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react'
 import { Col, Container, Row } from 'react-bootstrap'
-import { Button, Card, FormControl, ListGroup, Modal } from 'react-bootstrap'
+import { Button, Card, Form, FormControl, ListGroup, Modal } from 'react-bootstrap'
 import axios from 'axios'
 
 export default function Home() {
   const [unicorns, setUnicorns] = useState([])
   const [unicornInput, setUnicornInput] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [unicornDelete, setUnicornDelete] = useState(null)
+  const [unicornEdit, setUnicornEdit] = useState(null)
   
 
-  const apiBaseUrl = 'https://crudcrud.com/api/8f1e51230f024f0a96cd510624b8cf8d'
+  // const apiBaseUrl = 'https://crudcrud.com/api/8f1e51230f024f0a96cd510624b8cf8d'
+  const apiBaseUrl = 'http://localhost:3000'
 
   useEffect(() => {
     const getUnicorns = async () => {
@@ -20,7 +23,8 @@ export default function Home() {
         setUnicorns(response.data.map(u => (
           {
             _id: u._id,
-            name: u.data.name
+            name: u.name,
+            age: u.age
           }
         )))
       } catch(e) {
@@ -35,13 +39,15 @@ export default function Home() {
     try {
       // send new unicorn to the API
       const response = await axios.post(`${apiBaseUrl}/unicorns`, {
-        data: { name: unicornInput }
+        name: unicornInput,
+        age: Math.ceil(Math.random() * 100)
       })
       
       // if API call was successful, add the new unicorn to state
       const newUnicorn = {
         _id: response.data._id,
-        name: unicornInput
+        name: unicornInput,
+        age: response.data.age
       }
       const updatedUnicorns = [...unicorns]
       updatedUnicorns.push(newUnicorn)
@@ -53,10 +59,10 @@ export default function Home() {
     }
   }
 
-  const handleDeleteUnicorn = unicorn => {
+  const handleDeleteUnicorn = async unicorn => {
     try {
       // delete unicorn from the API
-      axios.delete(`${apiBaseUrl}/unicorns/${unicorn._id}`)
+      await axios.delete(`${apiBaseUrl}/unicorns/${unicorn._id}`)
 
       // if API call was successful, delete the unicorn from state
       const updatedUnicorns = unicorns.filter(u => u._id !== unicorn._id)
@@ -68,14 +74,61 @@ export default function Home() {
     }
   }
 
+  const handleEditUnicorn = async unicorn => {
+    try {
+      // update unicorn in the API
+      await axios.put(`${apiBaseUrl}/unicorns/${unicorn._id}`, {
+        ...unicorn
+      })
+      // if API call was successful, delete the unicorn from state
+      const updatedUnicorns = unicorns.map(u => {
+        if (u._id === unicorn._id) {
+          return unicorn
+        }
+        return u
+      })
+      setUnicorns(updatedUnicorns)
+      setShowEditModal(false)
+    } catch(e) {
+      // if API call was unsuccessful, log the error to the console
+      console.error('Error updating unicorn!', e)
+    }
+  }
+
+  const handleEditUnicornName = e => {
+    setUnicornEdit({
+      ...unicornEdit,
+      name: e.target.value
+    })
+    console.log("Editing unicorn: ", unicornEdit)
+  }
+
+  const handleEditUnicornAge = e => {
+    setUnicornEdit({
+      ...unicornEdit,
+      age: e.target.value
+    })
+    console.log(e.target.value)
+  }
+
   const handleCloseDeleteModal = () => {
     setUnicornDelete(null)
     setShowDeleteModal(false)
   }
 
+  const handleCloseEditModal = () => {
+    setUnicornEdit(null)
+    setShowEditModal(false)
+  }
+
   const handleShowDeleteModal = unicorn => {
     setUnicornDelete(unicorn)
     setShowDeleteModal(true)
+  }
+
+  const handleShowEditModal = unicorn => {
+    setUnicornEdit(unicorn)
+    setShowEditModal(true)
   }
 
   return (
@@ -121,9 +174,10 @@ export default function Home() {
                             <Container fluid>
                               <Row className="d-flex align-items-center">
                                 <Col xs={1}>&#x1f984;</Col>
-                                <Col><strong>{unicorn.name}</strong></Col>
+                                <Col><strong>{unicorn.name}</strong> ({unicorn.age})</Col>
                                 <Col xs={2} className="d-flex justify-content-end">
-                                  <Button onClick={() => handleShowDeleteModal(unicorn)}>X</Button>
+                                  <Button onClick={() => handleShowEditModal(unicorn)}>&#x270f;</Button>
+                                  <Button variant="danger" onClick={() => handleShowDeleteModal(unicorn)}>X</Button>
                                 </Col>
                               </Row>
                             </Container>
@@ -150,6 +204,27 @@ export default function Home() {
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseDeleteModal}>Close</Button>
           <Button variant="danger" onClick={() => handleDeleteUnicorn(unicornDelete)}>-&#x1f984;</Button>
+        </Modal.Footer>
+      </Modal>
+      <Modal show={showEditModal} onHide={handleCloseEditModal}>
+        <Modal.Header closeButton>
+          <h3>Edit Unicorn</h3>
+        </Modal.Header>
+        <Modal.Body>
+          {
+            unicornEdit && (
+              <>
+                <Form.Label>Name</Form.Label>
+                <FormControl type="text" value={unicornEdit.name} onChange={handleEditUnicornName}></FormControl>
+                <Form.Label>Age</Form.Label>
+                <FormControl type="text" value={unicornEdit.age} onChange={handleEditUnicornAge}></FormControl>
+              </>
+            )
+          }
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseEditModal}>Close</Button>
+          <Button variant="primary" onClick={() => handleEditUnicorn(unicornEdit)}>&#x270f;&#x1f984;</Button>
         </Modal.Footer>
       </Modal>
     </>
