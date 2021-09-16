@@ -1,133 +1,140 @@
 import React, { useEffect, useState } from 'react'
 import { Col, Container, Row } from 'react-bootstrap'
-import { Button, Card, Form, FormControl, ListGroup, Modal } from 'react-bootstrap'
+import { Button, ButtonGroup, Card, Form, ListGroup, Modal } from 'react-bootstrap'
 import axios from 'axios'
 
 export default function Home() {
-  const [unicorns, setUnicorns] = useState([])
-  const [unicornInput, setUnicornInput] = useState('')
+  const [creatures, setCreatures] = useState([])
+  const [creatureInput, setCreatureInput] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
-  const [unicornDelete, setUnicornDelete] = useState(null)
-  const [unicornEdit, setUnicornEdit] = useState(null)
-  
+  const [creatureDelete, setCreatureDelete] = useState(null)
+  const [creatureEdit, setCreatureEdit] = useState(null)
 
-  // const apiBaseUrl = 'https://crudcrud.com/api/8f1e51230f024f0a96cd510624b8cf8d'
-  const apiBaseUrl = 'http://localhost:3000'
+  const apiBaseUrl = 'http://localhost:3000/api'
 
   useEffect(() => {
-    const getUnicorns = async () => {
+    const getCreatures = () => {
+      const creatureTypes = ['bison', 'unicorns']
       try {
-        // retrieve all unicorns from the API
-        const response = await axios.get(`${apiBaseUrl}/unicorns`)
-        setUnicorns(response.data.map(u => (
-          {
-            _id: u._id,
-            name: u.name,
-            age: u.age
-          }
-        )))
-      } catch(e) {
+        // retrieve all creatures from the API
+        creatureTypes.forEach(async type => {
+          const rCreatures = await axios.get(`${apiBaseUrl}/${type}`)
+          setCreatures((creatures) => [
+            ...creatures,
+            ...rCreatures.data.map(c => (
+              {
+                _id: c._id,
+                type,
+                name: c.name,
+                age: c.age
+              }
+            ))
+          ])
+        })
+      } catch (e) {
         // if API call was unsuccessful, log the error to the console
         console.error('Error retrieving unicorns!', e)
       }
     }
-    getUnicorns()
+    getCreatures()
   }, [])
 
-  const handleAddUnicorn = async () => {
+  const handleAddCreature = async type => {
+    console.log('add', type)
     try {
-      // send new unicorn to the API
-      const response = await axios.post(`${apiBaseUrl}/unicorns`, {
-        name: unicornInput,
+      // send new creature to the API
+      const response = await axios.post(`${apiBaseUrl}/${type}`, {
+        name: creatureInput,
         age: Math.ceil(Math.random() * 100)
       })
-      
-      // if API call was successful, add the new unicorn to state
-      const newUnicorn = {
+
+      // if API call was successful, add the new creature to state
+      const newCreature = {
         _id: response.data._id,
-        name: unicornInput,
+        type,
+        name: creatureInput,
         age: response.data.age
       }
-      const updatedUnicorns = [...unicorns]
-      updatedUnicorns.push(newUnicorn)
-      setUnicorns(updatedUnicorns)
-      setUnicornInput('')
-    } catch(e) {
+      const updatedCreatures = [...creatures]
+      updatedCreatures.push(newCreature)
+      setCreatures(updatedCreatures)
+      setCreatureInput('')
+    } catch (e) {
       // if API call was unsuccessful, log the error to the console
-      console.error('Error creating unicorn!', e)
+      console.error('Error creating creature!', e)
     }
   }
 
-  const handleDeleteUnicorn = async unicorn => {
+  const handleDeleteCreature = async creature => {
     try {
-      // delete unicorn from the API
-      await axios.delete(`${apiBaseUrl}/unicorns/${unicorn._id}`)
+      // delete creature from the API
+      await axios.delete(`${apiBaseUrl}/${creature.type}/${creature._id}`)
 
-      // if API call was successful, delete the unicorn from state
-      const updatedUnicorns = unicorns.filter(u => u._id !== unicorn._id)
-      setUnicorns(updatedUnicorns)
+      // if API call was successful, delete the creature from state
+      const updatedCreatures = creatures.filter(c => c._id !== creature._id)
+      setCreatures(updatedCreatures)
       setShowDeleteModal(false)
-    } catch(e) {
+    } catch (e) {
       // if API call was unsuccessful, log the error to the console
-      console.error('Error deleting unicorn!', e)
+      console.error('Error deleting creature!', e)
     }
   }
 
-  const handleEditUnicorn = async unicorn => {
+  const handleEditCreature = async creature => {
     try {
-      // update unicorn in the API
-      await axios.put(`${apiBaseUrl}/unicorns/${unicorn._id}`, {
-        ...unicorn
+      // update creature in the API
+      await axios.put(`${apiBaseUrl}/${creature.type}/${creature._id}`, {
+        ...creature
       })
-      // if API call was successful, delete the unicorn from state
-      const updatedUnicorns = unicorns.map(u => {
-        if (u._id === unicorn._id) {
-          return unicorn
+      // if API call was successful, update the creature in state
+      const updatedCreatures = creatures.map(c => {
+        if (c._id === creature._id) {
+          return creature
         }
-        return u
+        return c
       })
-      setUnicorns(updatedUnicorns)
+      setCreatures(updatedCreatures)
       setShowEditModal(false)
-    } catch(e) {
+    } catch (e) {
       // if API call was unsuccessful, log the error to the console
-      console.error('Error updating unicorn!', e)
+      console.error('Error updating creature!', e)
     }
   }
 
-  const handleEditUnicornName = e => {
-    setUnicornEdit({
-      ...unicornEdit,
+  const handleChangeName = e => {
+    setCreatureEdit({
+      ...creatureEdit,
       name: e.target.value
     })
-    console.log("Editing unicorn: ", unicornEdit)
+    console.log("Editing creature: ", creatureEdit)
   }
 
-  const handleEditUnicornAge = e => {
-    setUnicornEdit({
-      ...unicornEdit,
+  const handleChangeAge = e => {
+    setCreatureEdit({
+      ...creatureEdit,
       age: e.target.value
     })
     console.log(e.target.value)
   }
 
   const handleCloseDeleteModal = () => {
-    setUnicornDelete(null)
+    setCreatureDelete(null)
     setShowDeleteModal(false)
   }
 
   const handleCloseEditModal = () => {
-    setUnicornEdit(null)
+    setCreatureEdit(null)
     setShowEditModal(false)
   }
 
-  const handleShowDeleteModal = unicorn => {
-    setUnicornDelete(unicorn)
+  const handleShowDeleteModal = creature => {
+    setCreatureDelete(creature)
     setShowDeleteModal(true)
   }
 
-  const handleShowEditModal = unicorn => {
-    setUnicornEdit(unicorn)
+  const handleShowEditModal = creature => {
+    setCreatureEdit(creature)
     setShowEditModal(true)
   }
 
@@ -143,11 +150,14 @@ export default function Home() {
             <Card bg="dark" text="white">
               <Card.Body>
                 <Card.Title>
-                  <strong>Add a Unicorn!</strong>
+                  <strong>Add a Creature!</strong>
                 </Card.Title>
-                <FormControl type="text" placeholder="Enter a unicorn name..." value={unicornInput} onChange={(e) => setUnicornInput(e.target.value)}></FormControl>
+                <Form.Control type="text" placeholder="Enter a name..." value={creatureInput} onChange={(e) => setCreatureInput(e.target.value)}></Form.Control>
                 <Col className="d-flex justify-content-end mt-3">
-                  <Button onClick={handleAddUnicorn}>+&#x1f984;</Button>
+                  <ButtonGroup>
+                    <Button variant="warning" onClick={() => handleAddCreature('bison')}>+&#x1f9ac;</Button>
+                    <Button variant="info" onClick={() => handleAddCreature('unicorns')}>+&#x1f984;</Button>
+                  </ButtonGroup>
                 </Col>
               </Card.Body>
             </Card>
@@ -159,25 +169,29 @@ export default function Home() {
             <Card bg="dark" text="white">
               <Card.Body>
                 <Card.Title>
-                  <strong>Unicorns</strong>
+                  <strong>Creatures</strong>
                 </Card.Title>
-                <FormControl type="text" placeholder="Filter" className="mb-3"></FormControl>
+                <Form.Control type="text" placeholder="Filter" className="mb-3"></Form.Control>
                 <ListGroup>
                   {
-                    !unicorns.length
+                    !creatures.length
                       ? (
-                        <span>No unicorns to show.</span>
+                        <span>No creatures to show.</span>
                       )
                       : (
-                        unicorns.map((unicorn, i) => (
+                        creatures.map((creature, i) => (
                           <ListGroup.Item key={i} variant="warning">
                             <Container fluid>
                               <Row className="d-flex align-items-center">
-                                <Col xs={1}>&#x1f984;</Col>
-                                <Col><strong>{unicorn.name}</strong> ({unicorn.age})</Col>
-                                <Col xs={2} className="d-flex justify-content-end">
-                                  <Button onClick={() => handleShowEditModal(unicorn)}>&#x270f;</Button>
-                                  <Button variant="danger" onClick={() => handleShowDeleteModal(unicorn)}>X</Button>
+                                {
+                                  creature.type === 'bison'
+                                    ? <Col xs={1}>&#x1f9ac;</Col>
+                                    : <Col xs={1}>&#x1f984;</Col>
+                                }
+                                <Col><strong>{creature.name}</strong> ({creature.age})</Col>
+                                <Col xs={4} className="d-flex justify-content-between">
+                                  <Button onClick={() => handleShowEditModal(creature)}>&#x270f;</Button>
+                                  <Button variant="danger" onClick={() => handleShowDeleteModal(creature)}>X</Button>
                                 </Col>
                               </Row>
                             </Container>
@@ -193,40 +207,58 @@ export default function Home() {
       </Container>
       <Modal show={showDeleteModal} onHide={handleCloseDeleteModal}>
         <Modal.Header closeButton>
-          <h3>Delete Unicorn</h3>
+          {
+            creatureDelete && <h3>Delete {creatureDelete.type === 'bison' ? 'Bison' : 'Unicorn'}</h3>
+          }
         </Modal.Header>
         <Modal.Body>
           Are you sure you want to delete:
           {
-            unicornDelete && <ListGroup.Item variant="warning">&#x1f984; {unicornDelete.name}</ListGroup.Item>
+            creatureDelete && (
+              creatureDelete.type === 'bison'
+                ? <ListGroup.Item variant="warning">&#x1f9ac; {creatureDelete.name}</ListGroup.Item>
+                : <ListGroup.Item variant="warning">&#x1f984; {creatureDelete.name}</ListGroup.Item>
+            )
           }
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseDeleteModal}>Close</Button>
-          <Button variant="danger" onClick={() => handleDeleteUnicorn(unicornDelete)}>-&#x1f984;</Button>
+          {
+            creatureDelete && (
+              creatureDelete.type === 'bison'
+                ? <Button variant="danger" onClick={() => handleDeleteCreature(creatureDelete)}>-&#x1f9ac;</Button>
+                : <Button variant="danger" onClick={() => handleDeleteCreature(creatureDelete)}>-&#x1f984;</Button>
+            )
+          }
         </Modal.Footer>
       </Modal>
       <Modal show={showEditModal} onHide={handleCloseEditModal}>
         <Modal.Header closeButton>
-          <h3>Edit Unicorn</h3>
+          {
+            creatureEdit && <h3>Edit {creatureEdit.type === 'bison' ? 'Bison' : 'Unicorn'}</h3>
+          }
         </Modal.Header>
         <Modal.Body>
           {
-            unicornEdit && (
+            creatureEdit && (
               <>
                 <Form.Label>Name</Form.Label>
-                <FormControl type="text" value={unicornEdit.name} onChange={handleEditUnicornName}></FormControl>
+                <Form.Control type="text" value={creatureEdit.name} onChange={handleChangeName}></Form.Control>
                 <Form.Label>Age</Form.Label>
-                <FormControl type="text" value={unicornEdit.age} onChange={handleEditUnicornAge}></FormControl>
+                <Form.Control type="text" value={creatureEdit.age} onChange={handleChangeAge}></Form.Control>
               </>
             )
           }
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseEditModal}>Close</Button>
-          <Button variant="primary" onClick={() => handleEditUnicorn(unicornEdit)}>&#x270f;&#x1f984;</Button>
+          {
+            creatureEdit && creatureEdit.type === 'bison'
+              ? <Button variant="primary" onClick={() => handleEditCreature(creatureEdit)}>&#x270f;&#x1f9ac;</Button>
+              : <Button variant="primary" onClick={() => handleEditCreature(creatureEdit)}>&#x270f;&#x1f984;</Button>
+          }
         </Modal.Footer>
       </Modal>
     </>
-  )   
+  )
 }
