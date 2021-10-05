@@ -1,15 +1,60 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useReducer, useState } from 'react'
 import { Col, Container, Row } from 'react-bootstrap'
 import { Button, ButtonGroup, Card, Form, ListGroup, Modal } from 'react-bootstrap'
 import axios from 'axios'
 
+const actions = {
+  addCreature: 'ADD_CREATURE',
+  addCreatures: 'ADD_CREATURES',
+  editCreature: 'EDIT_CREATURE',
+  deleteCreature: 'DELETE_CREATURE'
+}
+
+function reducer(state, action) {
+  let newState = { ...state }
+  switch (action.type) {
+    case actions.addCreatures:
+      newState = {
+        creatures: [
+          ...state.creatures,
+          ...action.payload
+        ]
+      }
+      return newState
+    case actions.addCreature:
+      const newCreatures = [...state.creatures]
+      newCreatures.push(action.payload)
+      newState = {
+        creatures: newCreatures
+      }
+      return newState
+    case actions.editCreature:
+      const updatedCreatures = state.creatures.map(c => {
+        if (c._id === action.payload._id) {
+          return action.payload
+        }
+        return c
+      })
+      newState.creatures = updatedCreatures
+      return newState
+    case actions.deleteCreature:
+      const creaturesAfterDelete = state.creatures.filter(c => c._id !== action.payload._id)
+      newState.creatures = creaturesAfterDelete
+      return newState
+    default:
+      return newState
+  }
+}
+
 export default function Home() {
-  const [creatures, setCreatures] = useState([])
   const [creatureInput, setCreatureInput] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [creatureDelete, setCreatureDelete] = useState(null)
   const [creatureEdit, setCreatureEdit] = useState(null)
+
+  const initialState = { creatures: [] }
+  const [state, dispatch] = useReducer(reducer, initialState)
 
   const apiBaseUrl = 'http://localhost:3000/api'
 
@@ -18,19 +63,19 @@ export default function Home() {
       const creatureTypes = ['bison', 'unicorns']
       try {
         // retrieve all creatures from the API
-        creatureTypes.forEach(async type => {
-          const rCreatures = await axios.get(`${apiBaseUrl}/${type}`)
-          setCreatures((creatures) => [
-            ...creatures,
-            ...rCreatures.data.map(c => (
-              {
-                _id: c._id,
-                type,
-                name: c.name,
-                age: c.age
-              }
-            ))
-          ])
+        creatureTypes.forEach(async creatureType => {
+          const rCreatures = await axios.get(`${apiBaseUrl}/${creatureType}`)
+          const newCreatures = rCreatures.data.map(c => (
+            {
+              _id: c._id,
+              type: creatureType,
+              name: c.name,
+              age: c.age
+            }
+          ))
+          dispatch({
+            type: actions.addCreatures, payload: newCreatures
+          })
         })
       } catch (e) {
         // if API call was unsuccessful, log the error to the console
@@ -56,9 +101,10 @@ export default function Home() {
         name: creatureInput,
         age: response.data.age
       }
-      const updatedCreatures = [...creatures]
-      updatedCreatures.push(newCreature)
-      setCreatures(updatedCreatures)
+      // const updatedCreatures = [...creatures]
+      // updatedCreatures.push(newCreature)
+      // setCreatures(updatedCreatures)
+      dispatch({ type: 'ADD_CREATURE', payload: newCreature })
       setCreatureInput('')
     } catch (e) {
       // if API call was unsuccessful, log the error to the console
@@ -72,8 +118,8 @@ export default function Home() {
       await axios.delete(`${apiBaseUrl}/${creature.type}/${creature._id}`)
 
       // if API call was successful, delete the creature from state
-      const updatedCreatures = creatures.filter(c => c._id !== creature._id)
-      setCreatures(updatedCreatures)
+      // setCreatures(updatedCreatures)
+      dispatch({ type: actions.deleteCreature, payload: creature })
       setShowDeleteModal(false)
     } catch (e) {
       // if API call was unsuccessful, log the error to the console
@@ -88,13 +134,8 @@ export default function Home() {
         ...creature
       })
       // if API call was successful, update the creature in state
-      const updatedCreatures = creatures.map(c => {
-        if (c._id === creature._id) {
-          return creature
-        }
-        return c
-      })
-      setCreatures(updatedCreatures)
+      // setCreatures(updatedCreatures)
+      dispatch({ type: actions.editCreature, payload: creature })
       setShowEditModal(false)
     } catch (e) {
       // if API call was unsuccessful, log the error to the console
@@ -174,12 +215,12 @@ export default function Home() {
                 <Form.Control type="text" placeholder="Filter" className="mb-3"></Form.Control>
                 <ListGroup>
                   {
-                    !creatures.length
+                    !state.creatures.length
                       ? (
                         <span>No creatures to show.</span>
                       )
                       : (
-                        creatures.map((creature, i) => (
+                        state.creatures.map((creature, i) => (
                           <ListGroup.Item key={i} variant="warning">
                             <Container fluid>
                               <Row className="d-flex align-items-center">
