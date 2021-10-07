@@ -1,50 +1,9 @@
-import React, { useEffect, useReducer, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { Col, Container, Row } from 'react-bootstrap'
+import { CreaturesContext } from '../App'
 import { Button, ButtonGroup, Card, Form, ListGroup, Modal } from 'react-bootstrap'
+import { actions } from '../store'
 import axios from 'axios'
-
-const actions = {
-  addCreature: 'ADD_CREATURE',
-  addCreatures: 'ADD_CREATURES',
-  editCreature: 'EDIT_CREATURE',
-  deleteCreature: 'DELETE_CREATURE'
-}
-
-function reducer(state, action) {
-  let newState = { ...state }
-  switch (action.type) {
-    case actions.addCreatures:
-      newState = {
-        creatures: [
-          ...state.creatures,
-          ...action.payload
-        ]
-      }
-      return newState
-    case actions.addCreature:
-      const newCreatures = [...state.creatures]
-      newCreatures.push(action.payload)
-      newState = {
-        creatures: newCreatures
-      }
-      return newState
-    case actions.editCreature:
-      const updatedCreatures = state.creatures.map(c => {
-        if (c._id === action.payload._id) {
-          return action.payload
-        }
-        return c
-      })
-      newState.creatures = updatedCreatures
-      return newState
-    case actions.deleteCreature:
-      const creaturesAfterDelete = state.creatures.filter(c => c._id !== action.payload._id)
-      newState.creatures = creaturesAfterDelete
-      return newState
-    default:
-      return newState
-  }
-}
 
 export default function Home() {
   const [creatureInput, setCreatureInput] = useState('')
@@ -53,8 +12,7 @@ export default function Home() {
   const [creatureDelete, setCreatureDelete] = useState(null)
   const [creatureEdit, setCreatureEdit] = useState(null)
 
-  const initialState = { creatures: [] }
-  const [state, dispatch] = useReducer(reducer, initialState)
+  const { state, dispatch } = useContext(CreaturesContext)
 
   const apiBaseUrl = 'http://localhost:3000/api'
 
@@ -74,7 +32,7 @@ export default function Home() {
             }
           ))
           dispatch({
-            type: actions.addCreatures, payload: newCreatures
+            type: actions.ADD_CREATURES, payload: newCreatures
           })
         })
       } catch (e) {
@@ -83,7 +41,7 @@ export default function Home() {
       }
     }
     getCreatures()
-  }, [])
+  }, [dispatch])
 
   const handleAddCreature = async type => {
     console.log('add', type)
@@ -104,7 +62,7 @@ export default function Home() {
       // const updatedCreatures = [...creatures]
       // updatedCreatures.push(newCreature)
       // setCreatures(updatedCreatures)
-      dispatch({ type: 'ADD_CREATURE', payload: newCreature })
+      dispatch({ type: actions.ADD_CREATURE, payload: newCreature })
       setCreatureInput('')
     } catch (e) {
       // if API call was unsuccessful, log the error to the console
@@ -119,7 +77,7 @@ export default function Home() {
 
       // if API call was successful, delete the creature from state
       // setCreatures(updatedCreatures)
-      dispatch({ type: actions.deleteCreature, payload: creature })
+      dispatch({ type: actions.DELETE_CREATURE, payload: creature })
       setShowDeleteModal(false)
     } catch (e) {
       // if API call was unsuccessful, log the error to the console
@@ -135,7 +93,7 @@ export default function Home() {
       })
       // if API call was successful, update the creature in state
       // setCreatures(updatedCreatures)
-      dispatch({ type: actions.editCreature, payload: creature })
+      dispatch({ type: actions.EDIT_CREATURE, payload: creature })
       setShowEditModal(false)
     } catch (e) {
       // if API call was unsuccessful, log the error to the console
